@@ -1,0 +1,6 @@
+1- umask 000 permite que los directorios de la imagen recien montada tengan permiso de lectura/escritura/ejecucion para todos (permiso 777). De lo contrario solo se podria acceder via sudo (testear)
+2-
+a.
+b.
+c. Es booteable ya que cuenta con boot flag. Es decir, el primer byte de la partición tiene valor 0x80
+
