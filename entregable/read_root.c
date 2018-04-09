@@ -14,7 +14,23 @@ typedef struct {
     unsigned char jmp[3];
     char oem[8];
     unsigned short sector_size;
-	// {...} COMPLETAR
+    //Dario Rick - INI
+    unsigned char sectores_por_cluster;
+    unsigned short reserved_sectors;
+    unsigned char number_of_fats;
+    unsigned short root_dir_entries;
+    unsigned short total_sectors_short;
+    unsigned char media_descriptor;
+    unsigned short fat_size_sectors;
+    unsigned short sectors_per_track;
+    unsigned short number_of_heads;
+    unsigned long sectores_ocultos;
+    unsigned long total_sectores;
+
+    unsigned char drive_number;
+    unsigned char current_head;
+    unsigned char boot_signature;
+    //Dario Rick - FIN
     char volume_id[4];
     char volume_label[11];
     char fs_type[8];
@@ -23,7 +39,16 @@ typedef struct {
 } __attribute((packed)) Fat12BootSector;
 
 typedef struct {
-	// {...} COMPLETAR
+    //Dario Rick - INI
+    unsigned char filename[8];
+    unsigned char ext[3];
+    unsigned char atributos;
+    unsigned char reservado[10];
+    unsigned short hora_modificacion;
+    unsigned short fecha_modificacion;
+    unsigned short cluster_inicio;
+    unsigned long tamanio_archivo;
+    //Dario Rick - FIN
 } __attribute((packed)) Fat12Entry;
 
 void print_file_info(Fat12Entry *entry) {
@@ -31,16 +56,16 @@ void print_file_info(Fat12Entry *entry) {
     case 0x00:
         return; // unused entry
     case 0xE5:
-        printf("Deleted file: [?%.7s.%.3s]\n", // COMPLETAR
+        printf("Deleted file: [?%.7s.%.3s]\n", entry->filename+1, entry->ext);
         return;
     case 0x05:
-        printf("File starting with 0xE5: [%c%.7s.%.3s]\n", 0xE5, // COMPLETAR 
+        printf("File starting with 0xE5: [%c%.7s.%.3s]\n", 0xE5, entry->filename+1, entry->ext);
         break;
     case 0x2E:
-        printf("Directory: [%.8s.%.3s]\n", // COMPLETAR 
+        printf("Directory: [%.8s.%.3s]\n", entry->filename, entry->ext);
         break;
     default:
-        printf("File: [%.8s.%.3s]\n", // COMPLETAR 
+        printf("File: [%.8s.%.3s]\n", entry->filename, entry->ext); 
     }
     
 }
@@ -52,7 +77,10 @@ int main() {
     Fat12BootSector bs;
     Fat12Entry entry;
    
-	//{...} Completar 
+    //Dario Rick - INI
+    fseek(in, 0x1BE, SEEK_SET); //Ir al inicio de la tabla de particiones
+    fread(pt, sizeof(PartitionTable), 4, in); //Lectura
+    //Dario Rick - FIN
     
     for(i=0; i<4; i++) {        
         if(pt[i].partition_type == 1) {
@@ -67,7 +95,7 @@ int main() {
     }
     
     fseek(in, 0, SEEK_SET);
-	//{...} Leo boot sector
+    fread(&bs, sizeof(Fat12BootSector), 1, in);// Leo boot sector
     
     printf("En  0x%X, sector size %d, FAT size %d sectors, %d FATs\n\n", 
            ftell(in), bs.sector_size, bs.fat_size_sectors, bs.number_of_fats);
