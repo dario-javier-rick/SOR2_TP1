@@ -15,21 +15,21 @@ typedef struct {
     char oem[8];
     unsigned short sector_size;
     //Dario Rick - INI
-    unsigned char sectores_por_cluster;
+//    unsigned char sectores_por_cluster;
     unsigned short reserved_sectors;
     unsigned char number_of_fats;
     unsigned short root_dir_entries;
-    unsigned short total_sectors_short;
-    unsigned char media_descriptor;
+//    unsigned short total_sectors_short;
+//    unsigned char media_descriptor;
     unsigned short fat_size_sectors;
-    unsigned short sectors_per_track;
-    unsigned short number_of_heads;
-    unsigned long sectores_ocultos;
-    unsigned long total_sectores;
+//    unsigned short sectors_per_track;
+//    unsigned short number_of_heads;
+//    unsigned long sectores_ocultos;
+//    unsigned long total_sectores;
 
-    unsigned char drive_number;
-    unsigned char current_head;
-    unsigned char boot_signature;
+//    unsigned char drive_number;
+//    unsigned char current_head;
+//    unsigned char boot_signature;
     //Dario Rick - FIN
     char volume_id[4];
     char volume_label[11];
@@ -77,6 +77,7 @@ int main() {
     Fat12BootSector bs;
     Fat12Entry entry;
    
+    printf("tamaño PartitionTable: %i\n", sizeof(PartitionTable));
     //Dario Rick - INI
     fseek(in, 0x1BE, SEEK_SET); //Ir al inicio de la tabla de particiones
     fread(pt, sizeof(PartitionTable), 4, in); //Lectura
@@ -95,7 +96,10 @@ int main() {
     }
     
     fseek(in, 0, SEEK_SET);
-    fread(&bs, sizeof(Fat12BootSector), 1, in);// Leo boot sector
+
+    printf("tamaño fat12BootSector: %i\n", sizeof(Fat12BootSector));
+
+    fread(&bs, /*sizeof(Fat12BootSector)*/0, 1, in);// Leo boot sector
     
     printf("En  0x%X, sector size %d, FAT size %d sectors, %d FATs\n\n", 
            ftell(in), bs.sector_size, bs.fat_size_sectors, bs.number_of_fats);
