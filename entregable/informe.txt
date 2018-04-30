@@ -1,6 +1,30 @@
-1- umask 000 permite que los directorios de la imagen recien montada tengan permiso de lectura/escritura/ejecucion para todos (permiso 777). De lo contrario solo se podria acceder via sudo (testear)
-2-
+﻿1- umask 000 permite que los directorios de la imagen recien montada tengan permiso de lectura/escritura/ejecucion para todos (permiso 777). De lo contrario solo se podria acceder via sudo (testear)
+2- Hay 4 particiones.
 a.
 b.
 c. Es booteable ya que cuenta con boot flag. Es decir, el primer byte de la partición tiene valor 0x80
+d.  Esta info se saca del archivo read_mbr:
+
+	
+	Datos de la primera particion:
+
+	
+	FLAG BOOTEABLE:
+		Primer Byte : 80
+
+	CHS:
+	  	
+	  Comienzo de particion en CHS: 	00:02:00
+
+	  Finalizacion de particion en CHS: 	00:20:20
+
+
+	TIPO DE PARTICION:
+	  01 - FAT12
+  	
+  
+	SECTORES:
+  
+	  Tamaño 2047 
+
 
