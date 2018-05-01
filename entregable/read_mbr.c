@@ -42,11 +42,12 @@ int main() {
 		}
 
 		printf("  Partition end in CHS: %02X:%02X:%02X\n", fgetc(in), fgetc(in), fgetc(in));
-
-		printf("  start_sector %d\n", start_sector);
-		printf("  length_sectors %d\n", length_sectors);
 		fread(&start_sector, 4, 1, in);
 		fread(&length_sectors, 4, 1, in);
+		
+		printf("  start_sector %d\n", start_sector);
+		printf("  length_sectors %d\n", length_sectors);
+		
 		printf("  Relative LBA address 0x%08X, %d sectors long\n", start_sector, length_sectors);
 	}
 
