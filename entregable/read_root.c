@@ -42,14 +42,17 @@ typedef struct {
 	unsigned char filename[8];
 	unsigned char ext[3];
 	unsigned char atributos[1];
-	unsigned char reservado	;
+	unsigned char reservado[10];
 	unsigned short hora_modificacion;
 	unsigned short fecha_modificacion;
 	unsigned short cluster_inicio;
-	unsigned long tamanio_archivo;
+	unsigned int tamanio_archivo:32;
 } __attribute((packed)) Fat12Entry;
 
-void print_file_info(Fat12Entry *entry) {
+void print_file_info(Fat12Entry *entry, int posicion) {
+
+        //printf("tipo: [0x%X]",entry->filename[0]);
+
 	switch (entry->filename[0]) {
 	case 0x00:
 		return; // unused entry
@@ -63,6 +66,7 @@ void print_file_info(Fat12Entry *entry) {
 		printf("Directory: [%.8s.%.3s]\n", entry->filename, entry->ext);
 		break;
 	default:
+                printf("Posición: [0x%X] ", posicion);
 		printf("File: [%.8s.%.3s]\n", entry->filename, entry->ext);
 	}
 
@@ -96,14 +100,22 @@ int main() {
 	printf("En  0x%lx, sector size %d, FAT size %d sectors, %d FATs\n\n",
 		ftell(in), bs.sector_size, bs.tamanio_fat, bs.cantidad_tablas_fats);
 
-	fseek(in, (bs.sector_size - 1 + bs.tamanio_fat * bs.cantidad_tablas_fats) *
+
+        //Voy al final de la ultima tabla FAT, donde comienza el root directory
+	fseek(in, (bs.sectores_reservados - 1 + bs.tamanio_fat * bs.cantidad_tablas_fats) *
 		bs.sector_size, SEEK_CUR);
+        printf("Sectores reservados: %i\n", bs.sectores_reservados);
+        printf("Tamaño de sector: %i\n", bs.sector_size);
+        printf("Cantidad tablas FAT: %i\n", bs.cantidad_tablas_fats);
+        printf("Tamaño de FAT: %i\n", bs.tamanio_fat);
+        printf("\nInicio Root directory en 0x%lX\n", ftell(in));
+
 
 	printf("Root dir_entries %d \n", bs.root_entries);
 	for (i = 0; i < bs.root_entries; i++) {
                 //printf("\nAhora en 0x%lX\n", ftell(in));
 		fread(&entry, sizeof(entry), 1, in);
-		print_file_info(&entry);
+		print_file_info(&entry, i);
 	}
 
 	printf("\nLeido Root directory, ahora en 0x%lX\n", ftell(in));
