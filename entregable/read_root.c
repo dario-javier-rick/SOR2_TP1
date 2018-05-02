@@ -93,19 +93,20 @@ int main() {
 	fseek(in, 0, SEEK_SET);
 	fread(&bs, sizeof(Fat12BootSector), 1, in);// Leo boot sector
 
-	printf("En  0x%X, sector size %d, FAT size %d sectors, %d FATs\n\n",
-		ftell(in), bs.sector_size, bs.fat_size_sectors, bs.number_of_fats);
+	printf("En  0x%lx, sector size %d, FAT size %d sectors, %d FATs\n\n",
+		ftell(in), bs.sector_size, bs.tamanio_fat, bs.cantidad_tablas_fats);
 
-	fseek(in, (bs.reserved_sectors - 1 + bs.fat_size_sectors * bs.number_of_fats) *
+	fseek(in, (bs.sector_size - 1 + bs.tamanio_fat * bs.cantidad_tablas_fats) *
 		bs.sector_size, SEEK_CUR);
 
-	printf("Root dir_entries %d \n", bs.root_dir_entries);
-	for (i = 0; i < bs.root_dir_entries; i++) {
+	printf("Root dir_entries %d \n", bs.root_entries);
+	for (i = 0; i < bs.root_entries; i++) {
+                //printf("\nAhora en 0x%lX\n", ftell(in));
 		fread(&entry, sizeof(entry), 1, in);
 		print_file_info(&entry);
 	}
 
-	printf("\nLeido Root directory, ahora en 0x%X\n", ftell(in));
+	printf("\nLeido Root directory, ahora en 0x%lX\n", ftell(in));
 	fclose(in);
 	return 0;
 }
