@@ -11,46 +11,42 @@ typedef struct {
 } __attribute((packed)) PartitionTable;
 
 typedef struct {
-	unsigned char jmp[3];
-	char oem[8];
-	unsigned short sector_size; // 2 bytes
-	//Dario Rick - ini
-	char sectores_por_cluster; // 1 byte
-	unsigned short sectores_reservados; // 2 bytes
-	char cantidad_tablas_fats; // 1 byte
-	short root_entries; // 2 bytes
-	short cantidad_sectores; // 2 bytes
-	char media_descriptor; // 1 byte
-	short sectores_por_fat; // 2 bytes
-	short sectores_por_head; // 2 bytes
-	short heads_por_cilindro; // 2 bytes
-	long sectores_ocultos; // 4 bytes
-	long big_number_sectores; // 4 bytes
-	long big_sectores_por_fat; // 4 bytes
-	short extFlags; // 2 bytes
-	short FSVersion; // 2 bytes
-	long directorio_inicio; // 4 bytes
-	short fs_info_sector; // 2 bytes
-	short backup_boot_sector; // 2 bytes
-	//Dario Rick - fin
-	char volume_id[4];
-	char volume_label[11];
-	char fs_type[8]; // Type in ascii
-	char boot_code[448];
-	unsigned short boot_sector_signature;
+    //Bytes 0-35
+    unsigned char jmp[3]; //0-2
+    unsigned char oem[8]; //3-10
+    unsigned short sector_size; //11-12 2 bytes
+    unsigned char sectores_por_cluster; //13 1 byte
+    unsigned short sectores_reservados; //14-15 2 bytes
+    unsigned char cantidad_tablas_fats; //16 1 byte
+    unsigned short root_entries; //17-18 2 bytes
+    unsigned short cantidad_sectores; //19-20 2 bytes
+    unsigned char media_descriptor[1]; //21 1 byte
+    unsigned short tamanio_fat; //23-23 2 bytes (en sectores)
+    unsigned short sectores_por_track; //24-25 2 bytes
+    unsigned short cantidad_heads; //26-27 2 bytes
+    unsigned int sectores_ocultos:32; //28-31 4 bytes
+    unsigned int sectores_filesystem:32; //32-35 4 bytes
+
+    //Bytes restantes
+    unsigned char int13; //36	BIOS INT 13h (low level disk services) drive number
+    unsigned char nu; //37	Not used
+    unsigned char ebs; //38	Extended boot signature to validate next three fields (0x29)
+    char volume_id[4]; //39-42
+    char volume_label[11]; //43-53
+    char fs_type[8]; //54-61 en ascii
+    char boot_code[448]; //62-509
+    unsigned short boot_sector_signature; //510-511
 } __attribute((packed)) Fat12BootSector;
 
 typedef struct {
-	//Dario Rick - INI
 	unsigned char filename[8];
 	unsigned char ext[3];
-	unsigned char atributos;
-	unsigned char reservado[10];
+	unsigned char atributos[1];
+	unsigned char reservado	;
 	unsigned short hora_modificacion;
 	unsigned short fecha_modificacion;
 	unsigned short cluster_inicio;
 	unsigned long tamanio_archivo;
-	//Dario Rick - FIN
 } __attribute((packed)) Fat12Entry;
 
 void print_file_info(Fat12Entry *entry) {
@@ -79,11 +75,8 @@ int main() {
 	Fat12BootSector bs;
 	Fat12Entry entry;
 
-	printf("tamaño PartitionTable: %i\n", sizeof(PartitionTable));
-	//Dario Rick - INI
 	fseek(in, 0x1BE, SEEK_SET); //Ir al inicio de la tabla de particiones
 	fread(pt, sizeof(PartitionTable), 4, in); //Lectura
-	//Dario Rick - FIN
 
 	for (i = 0; i < 4; i++) {
 		if (pt[i].partition_type == 1) {
@@ -98,10 +91,7 @@ int main() {
 	}
 
 	fseek(in, 0, SEEK_SET);
-
-	printf("tamaño fat12BootSector: %i\n", sizeof(Fat12BootSector));
-
-	fread(&bs, /*sizeof(Fat12BootSector)*/0, 1, in);// Leo boot sector
+	fread(&bs, sizeof(Fat12BootSector), 1, in);// Leo boot sector
 
 	printf("En  0x%X, sector size %d, FAT size %d sectors, %d FATs\n\n",
 		ftell(in), bs.sector_size, bs.fat_size_sectors, bs.number_of_fats);
