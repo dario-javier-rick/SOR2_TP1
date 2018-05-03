@@ -51,24 +51,36 @@ typedef struct {
 
 void print_file_info(Fat12Entry *entry, int posicion) {
 
-        //printf("tipo: [0x%X]",entry->filename[0]);
-
 	switch (entry->filename[0]) {
 	case 0x00:
 		return; // unused entry
 	case 0xE5:
-		printf("Deleted file: [?%.7s.%.3s]\n", entry->filename + 1, entry->ext);
-		return;
+		printf("Deleted file: [?%.7s.%.3s] ", entry->filename + 1, entry->ext);
+		break;
 	case 0x05:
-		printf("File starting with 0xE5: [%c%.7s.%.3s]\n", 0xE5, entry->filename + 1, entry->ext);
+		printf("File starting with 0xE5: [%c%.7s.%.3s] ", 0xE5, entry->filename + 1, entry->ext);
 		break;
 	case 0x2E:
-		printf("Directory: [%.8s.%.3s]\n", entry->filename, entry->ext);
+		printf("Directory: [%.8s.%.3s] ", entry->filename, entry->ext);
 		break;
-	default:
-                printf("Posición: [0x%X] ", posicion);
-		printf("File: [%.8s.%.3s]\n", entry->filename, entry->ext);
+	default: //Si cae en este caso, es el primer caracter del archivo
+                printf("Cluster de inicio [0x%X] ", entry->cluster_inicio); //tengo que sumar offset de first allocation unit
+                //First allocation unit empieza en 0x5800
+                printf("Tamaño de archivo [%i] bytes ", entry->tamanio_archivo);
+		printf("File: [%.8s.%.3s] ", entry->filename, entry->ext);
+
+                switch (entry->atributos[0]) {
+                case 0x01:
+                      printf("Es un archivo oculto ");
+                      break;
+                case 0x10:
+                      printf("Es un subdirectorio ");
+                default:
+                      break;
+                }
 	}
+
+       printf("\n");
 
 }
 
