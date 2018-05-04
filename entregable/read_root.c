@@ -39,6 +39,7 @@ typedef struct {
 } __attribute((packed)) Fat12BootSector;
 
 typedef struct {
+/*
 	unsigned char filename[8];
 	unsigned char ext[3];
 	unsigned char atributos[1];
@@ -46,42 +47,85 @@ typedef struct {
 	unsigned short hora_modificacion;
 	unsigned short fecha_modificacion;
 	unsigned short cluster_inicio;
-	unsigned int tamanio_archivo:32;
+	unsigned char tamanio_archivo[4];
+*/
+	unsigned char filename[8];
+	unsigned char ext[3];
+	unsigned char atributos;
+	unsigned char reservado;
+	unsigned char createdTime;
+	unsigned char createdHour[2];
+	unsigned char createdDay[2];
+	unsigned char accessedDay[2];
+	unsigned char highBytesOfFirstClusterAddress[2];
+	unsigned char writenTime[2];
+	unsigned char writenDay[2];
+	unsigned short cluster_inicio;
+	unsigned char tamanio_archivo[4];
+
 } __attribute((packed)) Fat12Entry;
 
-void print_file_info(Fat12Entry *entry, int posicion) {
+void mostrarAtributos(Fat12Entry *entry)
+{
+   switch (entry->atributos) {
+     case 0x01:
+       printf("Es un archivo de solo lectura \n");
+       break;
+     case 0x02:
+       printf("Es un archivo oculto \n");
+       break;
+     case 0x04:
+       printf("Es un archivo de sistema \n");
+       break;
+     case 0x10:
+       printf("Es un subdirectorio \n");
+       break;
+     default:
+       break;
+    }
+}
+
+void mostrarContenidoArchivo(Fat12Entry* entry, Fat12BootSector* bs)
+{
+   unsigned int inicioFat = sizeof(Fat12BootSector) + (bs->sectores_reservados - 1) * bs->sector_size;
+   unsigned int inicioRoot = inicioFat + bs->tamanio_fat * bs->cantidad_tablas_fats * bs->sector_size;
+   unsigned int inicioData = inicioRoot + (bs->root_entries * sizeof(entry)); //offset
+
+   printf("Inicio FAT: [0x%X] \n", inicioFat);
+   printf("Inicio Root: [0x%X] \n", inicioRoot);
+   printf("SizeOf entry: [0x%lX] \n", sizeof(entry));
+   printf("Inicio Data: [0x%X] \n", inicioData);
+}
+
+void print_file_info(Fat12Entry *entry, Fat12BootSector *bs, int posicion) {
+
+        printf("sizeof(entry) [pfi]: [0x%lX] \n", sizeof(entry));
 
 	switch (entry->filename[0]) {
 	case 0x00:
 		return; // unused entry
 	case 0xE5:
-		printf("Deleted file: [?%.7s.%.3s] ", entry->filename + 1, entry->ext);
+                printf("\n----------\n");
+	        printf("Deleted file: [?%.7s.%.3s] ", entry->filename + 1, entry->ext);
 		break;
 	case 0x05:
+                printf("\n----------\n");
 		printf("File starting with 0xE5: [%c%.7s.%.3s] ", 0xE5, entry->filename + 1, entry->ext);
-		break;
+                break;
 	case 0x2E:
+                printf("\n----------\n");
 		printf("Directory: [%.8s.%.3s] ", entry->filename, entry->ext);
 		break;
 	default: //Si cae en este caso, es el primer caracter del archivo
-                printf("Cluster de inicio [0x%X] ", entry->cluster_inicio); //tengo que sumar offset de first allocation unit
+                printf("\n----------\n");
+                printf("File: [%.8s.%.3s] \n", entry->filename, entry->ext);
+                printf("Cluster de inicio [0x%X] \n", entry->cluster_inicio); //tengo que sumar offset de first allocation unit
                 //First allocation unit empieza en 0x5800
-                printf("Tamaño de archivo [%i] bytes ", entry->tamanio_archivo);
-		printf("File: [%.8s.%.3s] ", entry->filename, entry->ext);
-
-                switch (entry->atributos[0]) {
-                case 0x01:
-                      printf("Es un archivo oculto ");
-                      break;
-                case 0x10:
-                      printf("Es un subdirectorio ");
-                default:
-                      break;
-                }
+                printf("Tamaño de archivo [%i] bytes \n", (int)entry->tamanio_archivo[0]);
 	}
 
-       printf("\n");
-
+       mostrarAtributos(entry);
+       mostrarContenidoArchivo(entry,bs);
 }
 
 int main() {
@@ -127,9 +171,11 @@ int main() {
 	for (i = 0; i < bs.root_entries; i++) {
                 //printf("\nAhora en 0x%lX\n", ftell(in));
 		fread(&entry, sizeof(entry), 1, in);
-		print_file_info(&entry, i);
+		printf("sizeof(entry): [0x%lX] \n", sizeof(entry));
+		print_file_info(&entry, &bs, i);
 	}
 
+        printf("\n----------\n");
 	printf("\nLeido Root directory, ahora en 0x%lX\n", ftell(in));
 	fclose(in);
 	return 0;
