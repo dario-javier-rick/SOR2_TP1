@@ -39,16 +39,6 @@ typedef struct {
 } __attribute((packed)) Fat12BootSector;
 
 typedef struct {
-/*
-	unsigned char filename[8];
-	unsigned char ext[3];
-	unsigned char atributos[1];
-	unsigned char reservado[10];
-	unsigned short hora_modificacion;
-	unsigned short fecha_modificacion;
-	unsigned short cluster_inicio;
-	unsigned char tamanio_archivo[4];
-*/
 	unsigned char filename[8];
 	unsigned char ext[3];
 	unsigned char atributos;
@@ -85,21 +75,35 @@ void mostrarAtributos(Fat12Entry *entry)
     }
 }
 
-void mostrarContenidoArchivo(Fat12Entry* entry, Fat12BootSector* bs)
+void mostrarContenidoArchivo(FILE* in, Fat12Entry* entry, int tamanioEntry, Fat12BootSector* bs)
 {
    unsigned int inicioFat = sizeof(Fat12BootSector) + (bs->sectores_reservados - 1) * bs->sector_size;
    unsigned int inicioRoot = inicioFat + bs->tamanio_fat * bs->cantidad_tablas_fats * bs->sector_size;
-   unsigned int inicioData = inicioRoot + (bs->root_entries * sizeof(entry)); //offset
+   unsigned int inicioData = inicioRoot + (bs->root_entries * tamanioEntry); //offset
 
-   printf("Inicio FAT: [0x%X] \n", inicioFat);
-   printf("Inicio Root: [0x%X] \n", inicioRoot);
-   printf("SizeOf entry: [0x%lX] \n", sizeof(entry));
-   printf("Inicio Data: [0x%X] \n", inicioData);
+   //printf("Inicio FAT: [0x%X] \n", inicioFat);
+   //printf("Inicio Root: [0x%X] \n", inicioRoot);
+   //printf("SizeOf entry: [0x%lX] \n", sizeof(entry));
+   //printf("Inicio Data: [0x%X] \n", inicioData);
+   //printf("Sectores por track: [0x%X] \n", bs->sectores_por_track);
+   //printf("Tamaño de sector: [0x%X] \n", bs->sector_size);
+   //printf("Cluster inicio: [0x%X] \n", entry->cluster_inicio);
+
+   unsigned char buffer[bs->sector_size]; //Tomo este tamaño porque voy a leer sector por sector
+   unsigned int tamanioCluster = bs->sectores_por_cluster * bs->sector_size;
+   unsigned int bloque = inicioData + (tamanioCluster * (entry->cluster_inicio - 2) ); //Calculo bloque de inicio del dato
+   fseek(in, bloque, SEEK_SET); //Voy al bloque de inicio
+   fread(buffer, 1, bs->sector_size, in); //Leo el sector
+
+   printf("Bloque [0x%X] :", bloque);
+   printf("%s \n", buffer);
+
+   //printf("\nAhora en 0x%lX\n", ftell(in));
+   //Voy a la tabla FAT a buscar el proximo bloque, etc...
+   //Lo correcto sería hacer un while hasta que los bytes vengan vacíos, o hasta que llegue al limite del bloque
 }
 
-void print_file_info(Fat12Entry *entry, Fat12BootSector *bs, int posicion) {
-
-        printf("sizeof(entry) [pfi]: [0x%lX] \n", sizeof(entry));
+void print_file_info(FILE* in, Fat12Entry *entry, int tamanioEntry, Fat12BootSector *bs, int posicion) {
 
 	switch (entry->filename[0]) {
 	case 0x00:
@@ -125,7 +129,7 @@ void print_file_info(Fat12Entry *entry, Fat12BootSector *bs, int posicion) {
 	}
 
        mostrarAtributos(entry);
-       mostrarContenidoArchivo(entry,bs);
+       mostrarContenidoArchivo(in, entry, tamanioEntry, bs);
 }
 
 int main() {
@@ -171,8 +175,9 @@ int main() {
 	for (i = 0; i < bs.root_entries; i++) {
                 //printf("\nAhora en 0x%lX\n", ftell(in));
 		fread(&entry, sizeof(entry), 1, in);
-		printf("sizeof(entry): [0x%lX] \n", sizeof(entry));
-		print_file_info(&entry, &bs, i);
+                unsigned int ultimoSectorLeido = ftell(in);
+		print_file_info(in, &entry, sizeof(entry), &bs, i);
+                fseek(in, ultimoSectorLeido, SEEK_SET);
 	}
 
         printf("\n----------\n");
