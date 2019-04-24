@@ -5,6 +5,58 @@
 //Dado un archivo (o una parte), lo busque, y si lo encuentra 
 //y el mismo se encuentra borrado, lo recupere
 
+int checkName(FILE* in, Fat12Entry entry, char[] stringBuscado)
+{
+	//Si no es archivo o carpeta return 0,
+	if (nombreArchivo.atributos != 0x10 || nombreArchivo.atributos != 0x20)
+	{
+		return 0;
+	}
+	//Quitarle la primer letra al char[] y al nombreArchivo.filename
+	if (strstr(request, "favicon") != NULL)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void recuperarArchivo(FILE* in, Fat12Entry entry, char charInicial)
+{
+	entry.filename[0] = charInicial;
+	printf("El archivo se ha recuperado.\n");
+}
+
+void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int cantidadEntradas, Fat12BootSector bs, char[] archivo)
+{
+	int i = 0;
+	for (i = 0; i < cantidadEntradas; i++) {
+		fread(&entry, sizeof(entry), 1, in);
+		ultimoSectorLeido = ftell(in);
+		print_file_name(&entry);
+		int encontrado = checkName(entry, archivo);
+		if (encontrado == 1) 
+		{
+			printf("\nArchivo encontrado.\n");
+			if(entry.filename[0] == 0xE5)
+			{
+				printf("\nEl archivo está eliminado.\n");
+				recuperarArchivo(entry, archivo[0]);
+			}
+		}
+		if(entry.atributos == 0x10 && entry.filename[0] != 0x2E)
+		{
+			unsigned int inicioDataDirectorio = (/*offset inicioData*/0x4A00 + (bs.sectores_por_cluster * bs.sector_size * (entry.cluster_inicio - 2)));
+			printf("\ninicioDataDirectorio 0x%lX\n", inicioDataDirectorio);
+			fseek(in, inicioDataDirectorio, SEEK_SET);
+			leerDirectorio(in, entry, ftell(in), bs.sectores_por_cluster, bs);
+		}
+		fseek(in, ultimoSectorLeido, SEEK_SET);
+	}
+}
+
 int main(int argc, char *argv[]) {
 
 	char imagen[] = argv[1]; //Filesystem en formato .img
@@ -42,19 +94,8 @@ int main(int argc, char *argv[]) {
 
 
 	printf("Root dir_entries %d \n", bs.root_entries);
-	for (i = 0; i < bs.root_entries; i++) {
-                //printf("\nAhora en 0x%lX\n", ftell(in));
-		fread(&entry, sizeof(entry), 1, in);
-                unsigned int ultimoSectorLeido = ftell(in);
-
-		//print_file_info(in, &entry, sizeof(entry), &bs, i);
-		if(&entry->filename[0] == "0xE5"){ //Si es un archivo borrado..
-			//TODO: Me fijo si es = a archivo 
-			//TODO: si es igual, cambio el 0xE5 por 0x05
-		}
-
-                fseek(in, ultimoSectorLeido, SEEK_SET);
-	}
+	
+	buscarEnDirectorio(in, entry, ftell(in), bs.root_entries, bs, archivo);
 
         printf("\n----------\n");
 	printf("\nLeido Root directory, ahora en 0x%lX\n", ftell(in));
