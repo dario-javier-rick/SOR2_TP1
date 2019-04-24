@@ -17,9 +17,18 @@ void mostrarAtributos(Fat12Entry *entry)
      case 0x10:
        printf("Es un subdirectorio \n");
        break;
+     case 0x20:
+       printf("Es un archivo \n");
+       break;
      default:
        break;
     }
+
+	//printf("Fecha creacion: %s \n", entry->createdTime);
+	//printf("Hora creacion: %s \n", entry->createdHour);
+	printf("Cluster inicio: %d \n", entry->cluster_inicio);
+	printf("Tamanio archivo: %s \n", entry->tamanio_archivo);
+
 }
 
 void mostrarContenidoArchivo(FILE* in, Fat12Entry* entry, int tamanioEntry, Fat12BootSector* bs)
@@ -28,10 +37,11 @@ void mostrarContenidoArchivo(FILE* in, Fat12Entry* entry, int tamanioEntry, Fat1
    unsigned int inicioRoot = inicioFat + bs->tamanio_fat * bs->cantidad_tablas_fats * bs->sector_size;
    unsigned int inicioData = inicioRoot + (bs->root_entries * tamanioEntry); //offset
 
-   //printf("Inicio FAT: [0x%X] \n", inicioFat);
-   //printf("Inicio Root: [0x%X] \n", inicioRoot);
-   //printf("SizeOf entry: [0x%lX] \n", sizeof(entry));
-   //printf("Inicio Data: [0x%X] \n", inicioData);
+   printf("Inicio FAT: [0x%X] \n", inicioFat);
+   printf("Inicio Root: [0x%X] \n", inicioRoot);
+  // printf("SizeOf entry: %d \n", sizeof(entry));
+  // printf("Tamanio entry: %d \n", tamanioEntry);
+   printf("Inicio Data: [0x%X] \n", inicioData);
    //printf("Sectores por track: [0x%X] \n", bs->sectores_por_track);
    //printf("Tamaño de sector: [0x%X] \n", bs->sector_size);
    //printf("Cluster inicio: [0x%X] \n", entry->cluster_inicio);
@@ -50,7 +60,14 @@ void mostrarContenidoArchivo(FILE* in, Fat12Entry* entry, int tamanioEntry, Fat1
    //Lo correcto sería hacer un while hasta que los bytes vengan vacíos, o hasta que llegue al limite del bloque
 }
 
-void print_file_info(FILE* in, Fat12Entry *entry, int tamanioEntry, Fat12BootSector *bs, int posicion) {
+void print_file_info(FILE* in, Fat12Entry *entry, int tamanioEntry, Fat12BootSector *bs, int posicion) 
+{
+
+   unsigned int inicioFat = sizeof(Fat12BootSector) + (bs->sectores_reservados - 1) * bs->sector_size;
+   unsigned int inicioRoot = inicioFat + bs->tamanio_fat * bs->cantidad_tablas_fats * bs->sector_size;
+   unsigned int inicioData = inicioRoot + (bs->root_entries * tamanioEntry); //offset
+
+   //printf("Inicio Data: [0x%X] \n", inicioData);
 
 	switch (entry->filename[0]) {
 	case 0x00:
@@ -70,13 +87,39 @@ void print_file_info(FILE* in, Fat12Entry *entry, int tamanioEntry, Fat12BootSec
 	default: //Si cae en este caso, es el primer caracter del archivo
                 printf("\n----------\n");
                 printf("File: [%.8s.%.3s] \n", entry->filename, entry->ext);
-                printf("Cluster de inicio [0x%X] \n", entry->cluster_inicio); //tengo que sumar offset de first allocation unit
+                printf("Cluster de inicio [0x%lX] \n", entry->cluster_inicio + inicioData); //tengo que sumar offset de first allocation unit
                 //First allocation unit empieza en 0x5800
                 printf("Tamaño de archivo [%i] bytes \n", (int)entry->tamanio_archivo[0]);
 	}
 
        mostrarAtributos(entry);
        mostrarContenidoArchivo(in, entry, tamanioEntry, bs);
+}
+
+void leerDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int cantidadEntradas, Fat12BootSector bs)
+{
+	int i = 0;
+	for (i = 0; i < cantidadEntradas; i++) {
+		//printf("\nAhora en 0x%lX\n", ftell(in));
+		fread(&entry, sizeof(entry), 1, in);
+		ultimoSectorLeido = ftell(in);
+		print_file_info(in, &entry, sizeof(entry), &bs, i);
+		if(entry.atributos == 0x10 && entry.filename[0] != 0x2E) //Si estoy en un directorio y no estoy leyendo el puntero al anterior (evito loop infinito)
+		{
+			printf("\nEntrando en subdirectorio %s\n", entry.filename);
+
+			unsigned int inicioDataDirectorio = (/*offset inicioData*/0x4A00 + (bs.sectores_por_cluster * bs.sector_size * (entry.cluster_inicio - 2)));
+			printf("\ninicioDataDirectorio 0x%lX\n", inicioDataDirectorio);
+			fseek(in, inicioDataDirectorio, SEEK_SET);
+
+			//Recursion ATR			
+			leerDirectorio(in, entry, ftell(in), bs.sectores_por_cluster, bs);
+
+			printf("\nSaliendo del subdirectorio %s\n", entry.filename);
+			//Volver al ultimoSectorLeido antes de entrar al directorio
+		}
+		fseek(in, ultimoSectorLeido, SEEK_SET);
+	}
 }
 
 int main() {
@@ -119,13 +162,8 @@ int main() {
 
 
 	printf("Root dir_entries %d \n", bs.root_entries);
-	for (i = 0; i < bs.root_entries; i++) {
-                //printf("\nAhora en 0x%lX\n", ftell(in));
-		fread(&entry, sizeof(entry), 1, in);
-                unsigned int ultimoSectorLeido = ftell(in);
-		print_file_info(in, &entry, sizeof(entry), &bs, i);
-                fseek(in, ultimoSectorLeido, SEEK_SET);
-	}
+
+	leerDirectorio(in, entry, ftell(in), bs.root_entries, bs);
 
         printf("\n----------\n");
 	printf("\nLeido Root directory, ahora en 0x%lX\n", ftell(in));
