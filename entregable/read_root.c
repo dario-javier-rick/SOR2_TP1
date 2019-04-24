@@ -14,11 +14,17 @@ void mostrarAtributos(Fat12Entry *entry)
      case 0x04:
        printf("Es un archivo de sistema \n");
        break;
+     case 0x08:
+       printf("Es un volume label \n");
+       break;
      case 0x10:
        printf("Es un subdirectorio \n");
        break;
      case 0x20:
        printf("Es un archivo \n");
+       break;
+     case 0x40:
+       printf("Es un dispositivo \n");
        break;
      default:
        break;
