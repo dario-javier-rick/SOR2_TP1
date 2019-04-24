@@ -102,14 +102,36 @@ void print_file_info(FILE* in, Fat12Entry *entry, int tamanioEntry, Fat12BootSec
        mostrarContenidoArchivo(in, entry, tamanioEntry, bs);
 }
 
+//Punto 3a
+void print_file_name(Fat12Entry *entry) 
+{
+	if (entry->atributos == 0x10 || entry->atributos == 0x20)
+	{
+		switch (entry->filename[0])
+		{
+			case 0xE5:
+				printf("\nArchivo eliminado. ");
+				break;
+			case 0x2E:
+				printf("\nPuntero al directorio actual o al anterior.\n");
+				return;
+			default:
+				break;
+		}
+		printf("\nFile: [%.8s.%.3s] \n", entry->filename, entry->ext);
+	}
+}
+
 void leerDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int cantidadEntradas, Fat12BootSector bs)
 {
+	printf("\nLeyendo directorio\n");
 	int i = 0;
 	for (i = 0; i < cantidadEntradas; i++) {
 		//printf("\nAhora en 0x%lX\n", ftell(in));
 		fread(&entry, sizeof(entry), 1, in);
 		ultimoSectorLeido = ftell(in);
-		print_file_info(in, &entry, sizeof(entry), &bs, i);
+		//print_file_info(in, &entry, sizeof(entry), &bs, i);
+		print_file_name(&entry);
 		if(entry.atributos == 0x10 && entry.filename[0] != 0x2E) //Si estoy en un directorio y no estoy leyendo el puntero al anterior (evito loop infinito)
 		{
 			printf("\nEntrando en subdirectorio %s\n", entry.filename);
