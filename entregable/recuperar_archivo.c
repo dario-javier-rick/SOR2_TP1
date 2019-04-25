@@ -1,26 +1,36 @@
 #include <stdio.h>
-#include <stdlib.>
+#include <stdlib.h>
 #include "fatstructs.h"
 
 //Dado un archivo (o una parte), lo busque, y si lo encuentra 
 //y el mismo se encuentra borrado, lo recupere
 
-int checkName(FILE* in, Fat12Entry entry, char[] stringBuscado)
+int checkName(FILE* in, Fat12Entry entry, char* stringBuscado[])
 {
-	//Si no es archivo o carpeta return 0,
-	if (nombreArchivo.atributos != 0x10 || nombreArchivo.atributos != 0x20)
+	if (entry.atributos != 0x10 || entry.atributos != 0x20)
 	{
 		return 0;
 	}
 	//Quitarle la primer letra al char[] y al nombreArchivo.filename
-	if (strstr(request, "favicon") != NULL)
+	int i;
+	int j=1;
+	int maxj = (sizeof(stringBuscado) / sizeof(stringBuscado[0]));
+	int check = 0;
+	for (i=1; i< (sizeof(entry.filename) / sizeof(x[entry.filename[0]])); i++)
 	{
-		return 1;
+		if (entry.filename[i] == stringBuscado[j])
+		{
+			if (j>maxj) break;	//LLegue al final
+			check = 1;
+			j++;
+		}
+		else
+		{
+			check = 0;
+			j=1;
+		}
 	}
-	else
-	{
-		return 0;
-	}
+	return check;
 }
 
 void recuperarArchivo(FILE* in, Fat12Entry entry, char charInicial)
@@ -59,8 +69,8 @@ void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int c
 
 int main(int argc, char *argv[]) {
 
-	char imagen[] = argv[1]; //Filesystem en formato .img
-	char archivo[] = argv[2]; //Archivo a recuperar
+	char[] imagen = argv[1]; //Filesystem en formato .img
+	char[] archivo = argv[2]; //Archivo a recuperar
 
 	FILE * in = fopen(imagen, "rb");
 	int i;
