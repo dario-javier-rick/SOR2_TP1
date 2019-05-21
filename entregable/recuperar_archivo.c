@@ -5,7 +5,7 @@
 //Dado un archivo (o una parte), lo busque, y si lo encuentra 
 //y el mismo se encuentra borrado, lo recupere
 
-int checkName(FILE* in, Fat12Entry entry, char* stringBuscado[])
+int checkName(Fat12Entry entry, char* stringBuscado[])
 {
 	if (entry.atributos != 0x10 || entry.atributos != 0x20)
 	{
@@ -14,11 +14,11 @@ int checkName(FILE* in, Fat12Entry entry, char* stringBuscado[])
 	//Quitarle la primer letra al char[] y al nombreArchivo.filename
 	int i;
 	int j=1;
-	int maxj = (sizeof(stringBuscado) / sizeof(stringBuscado[0]));
+	int maxj = (sizeof(&stringBuscado) / sizeof(stringBuscado[0]));
 	int check = 0;
-	for (i=1; i< (sizeof(entry.filename) / sizeof(x[entry.filename[0]])); i++)
+	for (i=1; i< (sizeof(entry.filename) / sizeof(entry.filename[0])); i++)
 	{
-		if (entry.filename[i] == stringBuscado[j])
+		if (&entry.filename[i] == stringBuscado[j])
 		{
 			if (j>maxj) break;	//LLegue al final
 			check = 1;
@@ -33,19 +33,19 @@ int checkName(FILE* in, Fat12Entry entry, char* stringBuscado[])
 	return check;
 }
 
-void recuperarArchivo(FILE* in, Fat12Entry entry, char charInicial)
+void recuperarArchivo(Fat12Entry entry, char *charInicial)
 {
-	entry.filename[0] = charInicial;
+	entry.filename[0] = charInicial[0];
 	printf("El archivo se ha recuperado.\n");
 }
 
-void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int cantidadEntradas, Fat12BootSector bs, char[] archivo)
+void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int cantidadEntradas, Fat12BootSector bs, char archivo)
 {
 	int i = 0;
 	for (i = 0; i < cantidadEntradas; i++) {
 		fread(&entry, sizeof(entry), 1, in);
 		ultimoSectorLeido = ftell(in);
-		print_file_name(&entry);
+		//print_file_name(&entry);
 		int encontrado = checkName(entry, archivo);
 		if (encontrado == 1) 
 		{
@@ -53,7 +53,7 @@ void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int c
 			if(entry.filename[0] == 0xE5)
 			{
 				printf("\nEl archivo está eliminado.\n");
-				recuperarArchivo(entry, archivo[0]);
+				recuperarArchivo(entry, &archivo);
 			}
 		}
 		if(entry.atributos == 0x10 && entry.filename[0] != 0x2E)
@@ -61,7 +61,7 @@ void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int c
 			unsigned int inicioDataDirectorio = (/*offset inicioData*/0x4A00 + (bs.sectores_por_cluster * bs.sector_size * (entry.cluster_inicio - 2)));
 			printf("\ninicioDataDirectorio 0x%lX\n", inicioDataDirectorio);
 			fseek(in, inicioDataDirectorio, SEEK_SET);
-			leerDirectorio(in, entry, ftell(in), bs.sectores_por_cluster, bs);
+			buscarEnDirectorio(in, entry, ftell(in), bs.sectores_por_cluster, bs, archivo);
 		}
 		fseek(in, ultimoSectorLeido, SEEK_SET);
 	}
@@ -69,8 +69,8 @@ void buscarEnDirectorio(FILE* in, Fat12Entry entry, int ultimoSectorLeido, int c
 
 int main(int argc, char *argv[]) {
 
-	char[] imagen = argv[1]; //Filesystem en formato .img
-	char[] archivo = argv[2]; //Archivo a recuperar
+	char *imagen = argv[1]; //Filesystem en formato .img
+	char *archivo = argv[2]; //Archivo a recuperar
 
 	FILE * in = fopen(imagen, "rb");
 	int i;
